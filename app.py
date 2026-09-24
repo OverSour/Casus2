@@ -356,7 +356,7 @@ def grafiek_conditie(df):
 def grafiek_gemiddelde_per_tijd(df):
     keuze = st.selectbox(
         "Bekijk:",
-        ["Jaar", "Maand", "Weekdag", "Feestdag"]
+        ["Jaar", "Maand", "Weekdag", "Dagdeel", "Feestdag"]
     )
 
     # ---------------------------------------------------------
@@ -394,7 +394,7 @@ def grafiek_gemiddelde_per_tijd(df):
             ticktext=[str(jaar) for jaar in alle_jaren]
         )
 
-        return fig
+        return fig, keuze
 
     # ---------------------------------------------------------
     # MAAND
@@ -433,7 +433,7 @@ def grafiek_gemiddelde_per_tijd(df):
                 "maand_naam": list(MAAND_NAMEN_EN.values())
             },
             barmode="stack"
-        )
+        ), keuze
 
     # ---------------------------------------------------------
     # WEEKDAG
@@ -470,8 +470,47 @@ def grafiek_gemiddelde_per_tijd(df):
                 "dag_van_de_week": DAGEN_VOLGORDE
             },
             barmode="stack"
+        ), keuze
+    # ---------------------------------------------------------
+    # DAGDEEL
+    # ---------------------------------------------------------
+    elif keuze == "Dagdeel":
+        grenzen = [0, 6, 12, 18, 24]
+        labels = ["Nacht", "Ochtend", "Middag", "Avond"]
+
+        df = df.copy()
+
+        df["dagdeel"] = pd.cut(
+            df["date"].dt.hour,
+            bins=grenzen,
+            labels=labels,
+            right=False
         )
 
+        df_dagdeel = (
+            df
+            .groupby(["dagdeel", "sport_type"], observed=True)
+            .size()
+            .reset_index(name="aantal")
+        )
+
+        return px.bar(
+            df_dagdeel,
+            x="dagdeel",
+            y="aantal",
+            color="sport_type",
+            color_discrete_map=KLEUR_SPORT,
+            category_orders={
+                "dagdeel": labels
+            },
+            barmode="stack",
+            title="Aantal trainingen per dagdeel",
+            labels={
+                "dagdeel": "Dagdeel",
+                "aantal": "Aantal trainingen",
+                "sport_type": "Sport"
+            }
+        ), keuze
     # ---------------------------------------------------------
     # FEESTDAG
     # ---------------------------------------------------------
@@ -545,48 +584,9 @@ def grafiek_gemiddelde_per_tijd(df):
             categoryarray=tabel["name"].tolist()
         )
 
-        return fig
+        return fig, keuze
 
 
-def grafiek_dagdeel(df):
-
-    grenzen = [0, 6, 12, 18, 24]
-    labels = ["Nacht", "Ochtend", "Middag", "Avond"]
-
-    df = df.copy()
-
-    df["dagdeel"] = pd.cut(
-        df["date"].dt.hour,
-        bins=grenzen,
-        labels=labels,
-        right=False
-    )
-
-    df_dagdeel = (
-        df
-        .groupby(["dagdeel", "sport_type"], observed=True)
-        .size()
-        .reset_index(name="aantal")
-    )
-
-    return px.bar(
-        df_dagdeel,
-        x="dagdeel",
-        y="aantal",
-        color="sport_type",
-        color_discrete_map=KLEUR_SPORT,
-        category_orders={
-            "dagdeel": labels
-        },
-        barmode="stack",
-        title="Aantal trainingen per dagdeel",
-        labels={
-            "dagdeel": "Dagdeel",
-            "aantal": "Aantal trainingen",
-            "sport_type": "Sport"
-        }
-    )
- 
 # ---------------------------------------------------------------
 # Pagina
 # ---------------------------------------------------------------
@@ -614,36 +614,36 @@ st.plotly_chart(grafiek_conditie(df_gefilterd), width="stretch")
 
 
 
-st.markdown("""
-### Sporten per dagdeel
 
-De ochtend (06:00 - 12:00 uur) is over het algemeen het populairste sportmoment van de dag, direct gevolgd door de middag, terwijl de avond- en nachturen het minst populair zijn. Deze timing bepaalt echter sterk de specifieke sportkeuze. Activiteiten die buiten plaatsvinden, zoals buitenfietsen (Ride) en wandelen (Walk), kennen hun absolute piek in de vroege ochtenduren wanneer mensen graag profiteren van het daglicht. Zodra men echter binnen gaat sporten op een interactieve trainer (VirtualRide), verschuift de absolute piek juist naar de middag (12:00 - 18:00 uur).
-""")
-st.plotly_chart(grafiek_dagdeel(df_gefilterd), width="stretch")
+fig, keuze = grafiek_gemiddelde_per_tijd(df_gefilterd)
 
 
-st.markdown("""
-### Aantal trainingen per dag van de week
+if keuze == "Maand":
+    st.markdown("""
+    ### Sportkeuze door het jaar heen (Maanden)
 
-De sportfrequentie laat een heel dynamisch verloop zien over de week. Maandag start opvallend rustig met relatief weinig trainingen, waarna de activiteit op dinsdag direct naar de piek van de week schiet. Na deze dinsdagpiek neemt het aantal trainingen geleidelijk af richting de vrijdag, wat de rustigste doordeweekse dag is. In het weekend stijgt het aantal trainingen juist weer, waarbij zaterdag en zondag flink actiever zijn dan de vrijdag. Wel is er tijdens deze weekendstijging een duidelijke verschuiving in het type sport zichtbaar: het aandeel VirtualRide (binnenfietsen) neemt sterk af, terwijl de categorie Ride (buitenfietsen) juist groter wordt.
-""")
+    De sportfrequentie is sterk seizoensgebonden, met een absolute piek in de zomermaand juli. Als we naar de specifieke sporten kijken, valt op dat hardlopen (Run) vooral in de zomermaanden populair is, met een duidelijke piek in juli en augustus. Daarnaast is er een opmerkelijke trend zichtbaar bij het buitenfietsen (*Ride*): deze activiteit stijgt vanaf de maand juli tot en met de maand november, waarna het in de winter weer inzakt. Zwemmen (*Swim*) blijft daarentegen het hele jaar door stabiel met een nagenoeg gelijke verdeling over de maanden. Tot slot laat binnenfietsen (*VirtualRide*) een piek zien die vooral tussen april en augustus ligt, wat opvallend is voor een binnensport.
+    """)
+elif keuze == "Weekdag":
+    st.markdown("""
+    ### Aantal trainingen per dag van de week
 
+    De sportfrequentie laat een heel dynamisch verloop zien over de week. Maandag start opvallend rustig met relatief weinig trainingen, waarna de activiteit op dinsdag direct naar de piek van de week schiet. Na deze dinsdagpiek neemt het aantal trainingen geleidelijk af richting de vrijdag, wat de rustigste doordeweekse dag is. In het weekend stijgt het aantal trainingen juist weer, waarbij zaterdag en zondag flink actiever zijn dan de vrijdag. Wel is er tijdens deze weekendstijging een duidelijke verschuiving in het type sport zichtbaar: het aandeel VirtualRide (binnenfietsen) neemt sterk af, terwijl de categorie Ride (buitenfietsen) juist groter wordt.
+    """)
+elif keuze == "Dagdeel":
+    st.markdown("""
+    ### Sporten per dagdeel
 
+    De ochtend (06:00 - 12:00 uur) is over het algemeen het populairste sportmoment van de dag, direct gevolgd door de middag, terwijl de avond- en nachturen het minst populair zijn. Deze timing bepaalt echter sterk de specifieke sportkeuze. Activiteiten die buiten plaatsvinden, zoals buitenfietsen (Ride) en wandelen (Walk), kennen hun absolute piek in de vroege ochtenduren wanneer mensen graag profiteren van het daglicht. Zodra men echter binnen gaat sporten op een interactieve trainer (VirtualRide), verschuift de absolute piek juist naar de middag (12:00 - 18:00 uur).
+    """)
+elif keuze == "Feestdag":
+    st.markdown("""
+    ### Sporten op feestdagen
 
-st.markdown("""
-### Sportkeuze door het jaar heen (Maanden)
-
-De sportfrequentie is sterk seizoensgebonden, met een absolute piek in de zomermaand juli. Als we naar de specifieke sporten kijken, valt op dat hardlopen (Run) vooral in de zomermaanden populair is, met een duidelijke piek in juli en augustus. Daarnaast is er een opmerkelijke trend zichtbaar bij het buitenfietsen (*Ride*): deze activiteit stijgt vanaf de maand juli tot en met de maand november, waarna het in de winter weer inzakt. Zwemmen (*Swim*) blijft daarentegen het hele jaar door stabiel met een nagenoeg gelijke verdeling over de maanden. Tot slot laat binnenfietsen (*VirtualRide*) een piek zien die vooral tussen april en augustus ligt, wat opvallend is voor een binnensport.
-""")
-
-
-st.markdown("""
-### Sporten op feestdagen
-
-Op een gemiddelde, normale dag worden er ruim 8 workouts geregistreerd (blauwe balk). Feestdagen die traditioneel in het teken staan van familie of feesten, zoals New Year's Eve (1), Christmas Day (8) en Christmas Eve (8), scoren lager of gelijk aan dit gemiddelde. Officiële feestdagen of vrije dagen die minder strikte verplichtingen kennen, zoals Assumption of Mary (10) en Pentecost Monday (10), laten juist een stijging zien. Mensen benutten die extra vrije tijd dus vaker om te gaan sporten
-""")
-st.plotly_chart(grafiek_gemiddelde_per_tijd(df_gefilterd),width="stretch")
-
+    Op een gemiddelde, normale dag worden er ruim 8 workouts geregistreerd (blauwe balk). Feestdagen die traditioneel in het teken staan van familie of feesten, zoals New Year's Eve (1), Christmas Day (8) en Christmas Eve (8), scoren lager of gelijk aan dit gemiddelde. Officiële feestdagen of vrije dagen die minder strikte verplichtingen kennen, zoals Assumption of Mary (10) en Pentecost Monday (10), laten juist een stijging zien. Mensen benutten die extra vrije tijd dus vaker om te gaan sporten
+    """)
+    
+st.plotly_chart(fig, width="stretch")
 
 st.markdown("""
 ## Conclusie: Het ultieme sportmoment en de invloed op sportkeuze
