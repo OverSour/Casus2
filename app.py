@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import plotly.express as px
 import streamlit as st
-import os
 import kagglehub
 import plotly.graph_objects as go
 
@@ -136,7 +135,6 @@ df_totaal['dag_van_de_week'] = df_totaal['date'].dt.day_name()
 
 # 2. Weekend-indicator (bool: True of False)
 df_totaal["is_weekend"] = df_totaal["date"].dt.weekday >= 5
-df_totaal['dag_van_de_week']
 
 
 # Voer nu de efficiëntie-berekening uit
@@ -593,25 +591,81 @@ def grafiek_dagdeel(df):
 # Pagina
 # ---------------------------------------------------------------
 st.title("Strava & Feestdagen")
- 
+
+st.markdown("""
+## Inleiding
+
+Sporten is gezond, maar de manier waarop we onze trainingen inplannen is sterk afhankelijk van onze dagelijkse routines, het weer en de seizoenen. Om te begrijpen hoe mensen hun sportgedrag structureren, onderzoekt dit rapport de exacte timing van fysieke activiteiten. Centraal staat de vraag: **"Op welk moment van het jaar, de week en de dag sporten mensen het meest, en verschilt dit per type sport?"** Aan de hand van vier datavisualisaties analyseren we patronen op het gebied van maanden, weekdagen, feestdagen en dagdelen, inclusief de specifieke sportkeuzes per moment.
+""")
+
 begin, eind = datum_slider(df_totaal)
 df_gefilterd = filter_op_datum(df_totaal, begin, eind)
- 
+
 st.caption(f"{len(df_gefilterd)} workouts tussen {begin:%d-%m-%Y} en {eind:%d-%m-%Y}")
- 
+
 if df_gefilterd.empty:
     st.warning("Geen workouts in deze periode. Kies een groter bereik.")
     st.stop()
- 
+
 with st.expander("Bekijk de dataset"):
     st.dataframe(df_gefilterd)
- 
 
-st.plotly_chart(grafiek_per_weekdag(df_gefilterd), width="stretch")
-st.plotly_chart(grafiek_per_maand(df_gefilterd), width="stretch")
-st.plotly_chart(grafiek_dagdeel(df_gefilterd), width="stretch")
 st.plotly_chart(grafiek_conditie(df_gefilterd), width="stretch")
+
+
+
+st.markdown("""
+### Sporten per dagdeel
+
+De ochtend (06:00 - 12:00 uur) is over het algemeen het populairste sportmoment van de dag, direct gevolgd door de middag, terwijl de avond- en nachturen het minst populair zijn. Deze timing bepaalt echter sterk de specifieke sportkeuze. Activiteiten die buiten plaatsvinden, zoals buitenfietsen (Ride) en wandelen (Walk), kennen hun absolute piek in de vroege ochtenduren wanneer mensen graag profiteren van het daglicht. Zodra men echter binnen gaat sporten op een interactieve trainer (VirtualRide), verschuift de absolute piek juist naar de middag (12:00 - 18:00 uur).
+""")
+st.plotly_chart(grafiek_dagdeel(df_gefilterd), width="stretch")
+
+
+st.markdown("""
+### Aantal trainingen per dag van de week
+
+De sportfrequentie laat een heel dynamisch verloop zien over de week. Maandag start opvallend rustig met relatief weinig trainingen, waarna de activiteit op dinsdag direct naar de piek van de week schiet. Na deze dinsdagpiek neemt het aantal trainingen geleidelijk af richting de vrijdag, wat de rustigste doordeweekse dag is. In het weekend stijgt het aantal trainingen juist weer, waarbij zaterdag en zondag flink actiever zijn dan de vrijdag. Wel is er tijdens deze weekendstijging een duidelijke verschuiving in het type sport zichtbaar: het aandeel VirtualRide (binnenfietsen) neemt sterk af, terwijl de categorie Ride (buitenfietsen) juist groter wordt.
+""")
+
+
+
+st.markdown("""
+### Sportkeuze door het jaar heen (Maanden)
+
+De sportfrequentie is sterk seizoensgebonden, met een absolute piek in de zomermaand juli. Als we naar de specifieke sporten kijken, valt op dat hardlopen (Run) vooral in de zomermaanden populair is, met een duidelijke piek in juli en augustus. Daarnaast is er een opmerkelijke trend zichtbaar bij het buitenfietsen (*Ride*): deze activiteit stijgt vanaf de maand juli tot en met de maand november, waarna het in de winter weer inzakt. Zwemmen (*Swim*) blijft daarentegen het hele jaar door stabiel met een nagenoeg gelijke verdeling over de maanden. Tot slot laat binnenfietsen (*VirtualRide*) een piek zien die vooral tussen april en augustus ligt, wat opvallend is voor een binnensport.
+""")
+
+
+st.markdown("""
+### Sporten op feestdagen
+
+Op een gemiddelde, normale dag worden er ruim 8 workouts geregistreerd (blauwe balk). Feestdagen die traditioneel in het teken staan van familie of feesten, zoals New Year's Eve (1), Christmas Day (8) en Christmas Eve (8), scoren lager of gelijk aan dit gemiddelde. Officiële feestdagen of vrije dagen die minder strikte verplichtingen kennen, zoals Assumption of Mary (10) en Pentecost Monday (10), laten juist een stijging zien. Mensen benutten die extra vrije tijd dus vaker om te gaan sporten
+""")
 st.plotly_chart(grafiek_gemiddelde_per_tijd(df_gefilterd),width="stretch")
+
+
+st.markdown("""
+## Conclusie: Het ultieme sportmoment en de invloed op sportkeuze
+
+Als antwoord op de hoofdvraag kan worden gesteld dat het sportgedrag van mensen sterk afhankelijk is van de kalender en de klok. Mensen sporten het meest in de **ochtend (tussen 06:00 en 12:00 uur)**, op een **dinsdag** en tijdens de **zomermaand juli**.
+
+### De week en het jaar
+
+De week start rustig op maandag, bereikt op dinsdag een absolute piek en neemt daarna af tot vrijdag, waarna het weekend weer een stijging laat zien. **Juli is de populairste sportmaand van het jaar.**
+
+### Feestdagen
+
+Dit hangt sterk af van het type feestdag. Familiegerichte dagen scoren onder het gemiddelde van een normale dag (**8,3 workouts**), met **New Year's Eve** als absoluut dieptepunt met 1 workout. Minder traditionele vrije dagen zorgen juist voor een stijging, met uitschieters tot **10 workouts** op dagen zoals **Assumption of Mary** en **Pentecost Monday**.
+
+### Verschillen per sporttype
+
+De timing bepaalt fundamenteel de sportkeuze. Buitenactiviteiten zoals buitenfietsen (*Ride*) en wandelen (*Walk*) worden massaal in de vroege ochtend gedaan, waarbij buitenfietsen een specifieke piek kent van ruim **400 trainingen**.
+
+Bovendien stijgt buitenfietsen in de tweede helft van het jaar (**juli tot november**) en tijdens de weekenden. De indoorvariant (*VirtualRide*) kent daarentegen een verrassende verschuiving naar de middaguren (**12:00 - 18:00 uur**) met een piek van **357 trainingen**, en is met name populair tussen **april en augustus**.
+
+Hardlopen is vooral een **zomersport**, met de grootste activiteit in juli en augustus, terwijl zwemmen als enige sport **het hele jaar door stabiel** blijft.
+""")
 
 
 st.markdown("---")
@@ -642,3 +696,4 @@ Als laatste is er nog een dataset toegevoegd om te bepalen wat de feestdagen zij
 
 AI is onder andere gebruikt voor het oplossen van programmeerproblemen, het controleren van code en het verbeteren van de structuur van de code. De gebruikte datasets, keuzes in de verwerking van de gegevens en de uiteindelijke visualisaties zijn door onszelf gecontroleerd en beoordeeld.
 """)
+
